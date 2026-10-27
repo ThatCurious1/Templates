@@ -21,4 +21,4 @@ steps:
     backendAzureRmResourceGroupName: '$(rg)'
     backendAzureRmStorageAccountName: '$(sa)'
     backendAzureRmContainerName: '$(container)'
-    backendAzureRmKey: '${{parameters.key}}'
+    backendAzureRmKey: '${{parameters.key}}.tfstate'
