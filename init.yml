@@ -1,0 +1,24 @@
+parameters:
+- name: wd
+  type: string
+- name: sc
+  type: string
+- name: key
+  type: string
+
+steps:
+- task: TerraformInstaller@1
+  displayName: Terraform installer
+  inputs:
+    terraformVersion: 'latest'
+- task: TerraformTask@5
+  displayName: Terraform Init
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    workingDirectory: '${{parameters.wd}}'
+    backendServiceArm: '${{parameters.sc}}'
+    backendAzureRmResourceGroupName: '$(rg)'
+    backendAzureRmStorageAccountName: '$(sa)'
+    backendAzureRmContainerName: '$(container)'
+    backendAzureRmKey: '${{parameters.key}}'
