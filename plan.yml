@@ -21,5 +21,6 @@ stages:
       displayName: Terraform Plan
       inputs:
         provider: 'azurerm'
+        workingDirectory: '${{parameters.wd}}'
         command: 'plan'
         environmentServiceNameAzureRM: '${{ parameters.sc }}'
