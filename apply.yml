@@ -1,0 +1,26 @@
+parameters:
+- name: sc
+  type: string
+- name: env
+  type: string
+- name: wd
+  type: string
+
+stages:
+- stage: TerraformPlan${{parameters.env}}
+  displayName: Terraform Plan ${{ parameters.env }}
+  jobs:
+  - job: TerraformPlan
+    displayName: Terraform Plan ${{ parameters.env}}
+    steps:
+    - template: init.yml
+      parameters:
+       wd: ${{ parameters.wd}}
+       key: ${{ parameters.env }}
+       sc: ${{ parameters.sc}}
+    - task: TerraformTask@5
+      displayName: Terraform Apply
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        environmentServiceNameAzureRM: '${{ parameters.sc }}'
