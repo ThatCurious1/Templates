@@ -22,5 +22,6 @@ stages:
       displayName: Terraform Apply
       inputs:
         provider: 'azurerm'
+        workingDirectory: '${{parameters.wd}}'
         command: 'apply'
         environmentServiceNameAzureRM: '${{ parameters.sc }}'
