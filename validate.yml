@@ -1,0 +1,25 @@
+parameters:
+- name: wd
+  type: string
+- name: env
+  type: string
+- name: sc
+  type: string
+
+stages:
+  - stage: TerraformValidate${{parameters.env}}
+    displayName: Terraform Validate ${{ parameters.env }}
+    jobs:
+    - job: TerraformValidate
+      displayName: Terraform Validate ${{ parameters.env}}
+      steps:
+      - template: init.yml
+        parameters:
+          wd: ${{ parameters.wd}}
+          key: ${{ parameters.env }}
+          sc: ${{ parameters.sc}}
+      - task: TerraformTask@5
+        displayName: Terraform validate
+        inputs:
+          provider: 'azurerm'
+          command: 'validate'
