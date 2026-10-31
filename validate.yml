@@ -1,19 +1,19 @@
 # ==============================================================================
-# Reusable Stage Template: Terraform Init & Validate
+# Reusable Stage Template: Terraform Format & Validate
 # Repository: ThatCurious1/Templates
 # File: validate.yml
 # ==============================================================================
 
 parameters:
-  - name: env
-    type: string
-    default: 'dev'
-    displayName: 'Deployment Environment (e.g. dev, uat, prod)'
-
   - name: wd
     type: string
     default: '$(System.DefaultWorkingDirectory)'
     displayName: 'Terraform Working Directory'
+
+  - name: env
+    type: string
+    default: 'dev'
+    displayName: 'Target Environment'
 
   - name: sc
     type: string
@@ -40,11 +40,11 @@ parameters:
     default: 'ubuntu-latest'
 
 stages:
-  - stage: Validate_${{ parameters.env }}
-    displayName: '🔍 Validate - ${{ parameters.env }}'
+  - stage: TerraformValidate${{ parameters.env }}
+    displayName: '🔍 Terraform Validate ${{ parameters.env }}'
     jobs:
-      - job: ValidateJob
-        displayName: 'Terraform Format & Validate'
+      - job: TerraformValidate
+        displayName: 'Terraform Validate ${{ parameters.env }}'
         pool:
           vmImage: ${{ parameters.poolName }}
         steps:
@@ -52,13 +52,13 @@ stages:
 
           - template: init.yml
             parameters:
+              wd: ${{ parameters.wd }}
+              sc: ${{ parameters.sc }}
+              key: ${{ parameters.env }}
               terraformVersion: ${{ parameters.terraformVersion }}
-              workingDirectory: ${{ parameters.wd }}
-              serviceConnection: ${{ parameters.sc }}
               backendRg: ${{ parameters.backendRg }}
               backendSa: ${{ parameters.backendSa }}
               backendContainer: ${{ parameters.backendContainer }}
-              backendKey: '${{ parameters.env }}.tfstate'
 
           - task: TerraformTask@5
             displayName: '✅ Terraform Validate'
@@ -66,4 +66,3 @@ stages:
               provider: 'azurerm'
               command: 'validate'
               workingDirectory: '${{ parameters.wd }}'
-

@@ -5,15 +5,15 @@
 # ==============================================================================
 
 parameters:
-  - name: env
-    type: string
-    default: 'dev'
-    displayName: 'Deployment Environment (e.g. dev, uat, prod)'
-
   - name: wd
     type: string
     default: '$(System.DefaultWorkingDirectory)'
     displayName: 'Terraform Working Directory'
+
+  - name: env
+    type: string
+    default: 'dev'
+    displayName: 'Target Environment'
 
   - name: sc
     type: string
@@ -42,19 +42,19 @@ parameters:
   - name: dependsOn
     type: object
     default: []
-    displayName: 'Stage dependencies'
+    displayName: 'Custom stage dependencies'
 
 stages:
-  - stage: Apply_${{ parameters.env }}
-    displayName: '🚀 Apply - ${{ parameters.env }}'
+  - stage: TerraformApply${{ parameters.env }}
+    displayName: '🚀 Terraform Apply ${{ parameters.env }}'
     ${{ if ne(length(parameters.dependsOn), 0) }}:
       dependsOn: ${{ parameters.dependsOn }}
     ${{ else }}:
-      dependsOn: Plan_${{ parameters.env }}
+      dependsOn: TerraformPlan${{ parameters.env }}
     condition: succeeded()
     jobs:
-      - job: ApplyJob
-        displayName: 'Terraform Apply Execution'
+      - job: TerraformApply
+        displayName: 'Terraform Apply ${{ parameters.env }}'
         pool:
           vmImage: ${{ parameters.poolName }}
         steps:
@@ -62,13 +62,13 @@ stages:
 
           - template: init.yml
             parameters:
+              wd: ${{ parameters.wd }}
+              sc: ${{ parameters.sc }}
+              key: ${{ parameters.env }}
               terraformVersion: ${{ parameters.terraformVersion }}
-              workingDirectory: ${{ parameters.wd }}
-              serviceConnection: ${{ parameters.sc }}
               backendRg: ${{ parameters.backendRg }}
               backendSa: ${{ parameters.backendSa }}
               backendContainer: ${{ parameters.backendContainer }}
-              backendKey: '${{ parameters.env }}.tfstate'
 
           - task: TerraformTask@5
             displayName: '🚀 Terraform Apply'
@@ -77,4 +77,3 @@ stages:
               command: 'apply'
               workingDirectory: '${{ parameters.wd }}'
               environmentServiceNameAzureRM: '${{ parameters.sc }}'
-

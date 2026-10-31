@@ -5,39 +5,39 @@
 # ==============================================================================
 
 parameters:
-  - name: terraformVersion
-    type: string
-    default: 'latest'
-    displayName: 'Terraform CLI Version'
-
-  - name: workingDirectory
+  - name: wd
     type: string
     default: '$(System.DefaultWorkingDirectory)'
     displayName: 'Terraform Working Directory'
 
-  - name: serviceConnection
+  - name: sc
     type: string
-    displayName: 'Azure Service Connection Name'
+    displayName: 'Azure Service Connection'
+
+  - name: key
+    type: string
+    default: 'default'
+    displayName: 'Terraform State Key Prefix'
+
+  - name: terraformVersion
+    type: string
+    default: 'latest'
+    displayName: 'Terraform Version'
 
   - name: backendRg
     type: string
     default: '$(rg)'
-    displayName: 'Azure Backend Resource Group'
+    displayName: 'Backend Resource Group'
 
   - name: backendSa
     type: string
     default: '$(sa)'
-    displayName: 'Azure Backend Storage Account'
+    displayName: 'Backend Storage Account'
 
   - name: backendContainer
     type: string
     default: '$(container)'
-    displayName: 'Azure Backend Storage Container'
-
-  - name: backendKey
-    type: string
-    default: 'terraform.tfstate'
-    displayName: 'Azure Backend State File Key'
+    displayName: 'Backend Storage Container'
 
 steps:
   - task: TerraformInstaller@1
@@ -46,14 +46,13 @@ steps:
       terraformVersion: '${{ parameters.terraformVersion }}'
 
   - task: TerraformTask@5
-    displayName: '🚀 Terraform Init (${{ parameters.backendKey }})'
+    displayName: '🚀 Terraform Init (${{ parameters.key }}.tfstate)'
     inputs:
       provider: 'azurerm'
       command: 'init'
-      workingDirectory: '${{ parameters.workingDirectory }}'
-      backendServiceArm: '${{ parameters.serviceConnection }}'
+      workingDirectory: '${{ parameters.wd }}'
+      backendServiceArm: '${{ parameters.sc }}'
       backendAzureRmResourceGroupName: '${{ parameters.backendRg }}'
       backendAzureRmStorageAccountName: '${{ parameters.backendSa }}'
       backendAzureRmContainerName: '${{ parameters.backendContainer }}'
-      backendAzureRmKey: '${{ parameters.backendKey }}'
-
+      backendAzureRmKey: '${{ parameters.key }}.tfstate'
