@@ -1,0 +1,80 @@
+# ==============================================================================
+# Reusable Stage Template: Terraform Plan
+# Repository: ThatCurious1/Templates
+# File: plan.yml
+# ==============================================================================
+
+parameters:
+  - name: env
+    type: string
+    default: 'dev'
+    displayName: 'Deployment Environment (e.g. dev, uat, prod)'
+
+  - name: wd
+    type: string
+    default: '$(System.DefaultWorkingDirectory)'
+    displayName: 'Terraform Working Directory'
+
+  - name: sc
+    type: string
+    displayName: 'Azure Service Connection'
+
+  - name: terraformVersion
+    type: string
+    default: 'latest'
+
+  - name: backendRg
+    type: string
+    default: '$(rg)'
+
+  - name: backendSa
+    type: string
+    default: '$(sa)'
+
+  - name: backendContainer
+    type: string
+    default: '$(container)'
+
+  - name: poolName
+    type: string
+    default: 'ubuntu-latest'
+
+  - name: dependsOn
+    type: object
+    default: []
+    displayName: 'Stage dependencies'
+
+stages:
+  - stage: Plan_${{ parameters.env }}
+    displayName: '📋 Plan - ${{ parameters.env }}'
+    ${{ if ne(length(parameters.dependsOn), 0) }}:
+      dependsOn: ${{ parameters.dependsOn }}
+    ${{ else }}:
+      dependsOn: Validate_${{ parameters.env }}
+    condition: succeeded()
+    jobs:
+      - job: PlanJob
+        displayName: 'Terraform Plan Execution'
+        pool:
+          vmImage: ${{ parameters.poolName }}
+        steps:
+          - checkout: self
+
+          - template: init.yml
+            parameters:
+              terraformVersion: ${{ parameters.terraformVersion }}
+              workingDirectory: ${{ parameters.wd }}
+              serviceConnection: ${{ parameters.sc }}
+              backendRg: ${{ parameters.backendRg }}
+              backendSa: ${{ parameters.backendSa }}
+              backendContainer: ${{ parameters.backendContainer }}
+              backendKey: '${{ parameters.env }}.tfstate'
+
+          - task: TerraformTask@5
+            displayName: '📋 Terraform Plan'
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              workingDirectory: '${{ parameters.wd }}'
+              environmentServiceNameAzureRM: '${{ parameters.sc }}'
+

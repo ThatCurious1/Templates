@@ -1,0 +1,69 @@
+# ==============================================================================
+# Reusable Stage Template: Terraform Init & Validate
+# Repository: ThatCurious1/Templates
+# File: validate.yml
+# ==============================================================================
+
+parameters:
+  - name: env
+    type: string
+    default: 'dev'
+    displayName: 'Deployment Environment (e.g. dev, uat, prod)'
+
+  - name: wd
+    type: string
+    default: '$(System.DefaultWorkingDirectory)'
+    displayName: 'Terraform Working Directory'
+
+  - name: sc
+    type: string
+    displayName: 'Azure Service Connection'
+
+  - name: terraformVersion
+    type: string
+    default: 'latest'
+
+  - name: backendRg
+    type: string
+    default: '$(rg)'
+
+  - name: backendSa
+    type: string
+    default: '$(sa)'
+
+  - name: backendContainer
+    type: string
+    default: '$(container)'
+
+  - name: poolName
+    type: string
+    default: 'ubuntu-latest'
+
+stages:
+  - stage: Validate_${{ parameters.env }}
+    displayName: '🔍 Validate - ${{ parameters.env }}'
+    jobs:
+      - job: ValidateJob
+        displayName: 'Terraform Format & Validate'
+        pool:
+          vmImage: ${{ parameters.poolName }}
+        steps:
+          - checkout: self
+
+          - template: init.yml
+            parameters:
+              terraformVersion: ${{ parameters.terraformVersion }}
+              workingDirectory: ${{ parameters.wd }}
+              serviceConnection: ${{ parameters.sc }}
+              backendRg: ${{ parameters.backendRg }}
+              backendSa: ${{ parameters.backendSa }}
+              backendContainer: ${{ parameters.backendContainer }}
+              backendKey: '${{ parameters.env }}.tfstate'
+
+          - task: TerraformTask@5
+            displayName: '✅ Terraform Validate'
+            inputs:
+              provider: 'azurerm'
+              command: 'validate'
+              workingDirectory: '${{ parameters.wd }}'
+

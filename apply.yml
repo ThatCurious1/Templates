@@ -1,0 +1,80 @@
+# ==============================================================================
+# Reusable Stage Template: Terraform Apply
+# Repository: ThatCurious1/Templates
+# File: apply.yml
+# ==============================================================================
+
+parameters:
+  - name: env
+    type: string
+    default: 'dev'
+    displayName: 'Deployment Environment (e.g. dev, uat, prod)'
+
+  - name: wd
+    type: string
+    default: '$(System.DefaultWorkingDirectory)'
+    displayName: 'Terraform Working Directory'
+
+  - name: sc
+    type: string
+    displayName: 'Azure Service Connection'
+
+  - name: terraformVersion
+    type: string
+    default: 'latest'
+
+  - name: backendRg
+    type: string
+    default: '$(rg)'
+
+  - name: backendSa
+    type: string
+    default: '$(sa)'
+
+  - name: backendContainer
+    type: string
+    default: '$(container)'
+
+  - name: poolName
+    type: string
+    default: 'ubuntu-latest'
+
+  - name: dependsOn
+    type: object
+    default: []
+    displayName: 'Stage dependencies'
+
+stages:
+  - stage: Apply_${{ parameters.env }}
+    displayName: '🚀 Apply - ${{ parameters.env }}'
+    ${{ if ne(length(parameters.dependsOn), 0) }}:
+      dependsOn: ${{ parameters.dependsOn }}
+    ${{ else }}:
+      dependsOn: Plan_${{ parameters.env }}
+    condition: succeeded()
+    jobs:
+      - job: ApplyJob
+        displayName: 'Terraform Apply Execution'
+        pool:
+          vmImage: ${{ parameters.poolName }}
+        steps:
+          - checkout: self
+
+          - template: init.yml
+            parameters:
+              terraformVersion: ${{ parameters.terraformVersion }}
+              workingDirectory: ${{ parameters.wd }}
+              serviceConnection: ${{ parameters.sc }}
+              backendRg: ${{ parameters.backendRg }}
+              backendSa: ${{ parameters.backendSa }}
+              backendContainer: ${{ parameters.backendContainer }}
+              backendKey: '${{ parameters.env }}.tfstate'
+
+          - task: TerraformTask@5
+            displayName: '🚀 Terraform Apply'
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              workingDirectory: '${{ parameters.wd }}'
+              environmentServiceNameAzureRM: '${{ parameters.sc }}'
+

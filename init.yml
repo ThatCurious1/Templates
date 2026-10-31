@@ -1,0 +1,59 @@
+# ==============================================================================
+# Reusable Step Template: Terraform Tool Installer & Backend Initialization
+# Repository: ThatCurious1/Templates
+# File: init.yml
+# ==============================================================================
+
+parameters:
+  - name: terraformVersion
+    type: string
+    default: 'latest'
+    displayName: 'Terraform CLI Version'
+
+  - name: workingDirectory
+    type: string
+    default: '$(System.DefaultWorkingDirectory)'
+    displayName: 'Terraform Working Directory'
+
+  - name: serviceConnection
+    type: string
+    displayName: 'Azure Service Connection Name'
+
+  - name: backendRg
+    type: string
+    default: '$(rg)'
+    displayName: 'Azure Backend Resource Group'
+
+  - name: backendSa
+    type: string
+    default: '$(sa)'
+    displayName: 'Azure Backend Storage Account'
+
+  - name: backendContainer
+    type: string
+    default: '$(container)'
+    displayName: 'Azure Backend Storage Container'
+
+  - name: backendKey
+    type: string
+    default: 'terraform.tfstate'
+    displayName: 'Azure Backend State File Key'
+
+steps:
+  - task: TerraformInstaller@1
+    displayName: '⚙️ Install Terraform (${{ parameters.terraformVersion }})'
+    inputs:
+      terraformVersion: '${{ parameters.terraformVersion }}'
+
+  - task: TerraformTask@5
+    displayName: '🚀 Terraform Init (${{ parameters.backendKey }})'
+    inputs:
+      provider: 'azurerm'
+      command: 'init'
+      workingDirectory: '${{ parameters.workingDirectory }}'
+      backendServiceArm: '${{ parameters.serviceConnection }}'
+      backendAzureRmResourceGroupName: '${{ parameters.backendRg }}'
+      backendAzureRmStorageAccountName: '${{ parameters.backendSa }}'
+      backendAzureRmContainerName: '${{ parameters.backendContainer }}'
+      backendAzureRmKey: '${{ parameters.backendKey }}'
+
