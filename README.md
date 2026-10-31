@@ -42,8 +42,8 @@
 - 🔄 **Fully Generic & Parameterized**: No hardcoded environment names, subscriptions, or storage backends. Pass parameters or fall back cleanly to your pipeline variables.
 - 🏢 **Multi-Repo Federation**: Consume templates directly in your projects via `resources.repositories` syntax in Azure DevOps.
 - 📦 **DRY (Don't Repeat Yourself)**: All stages leverage `init.yml` as a shared baseline, eliminating duplicated CLI installation and backend authentication steps.
-- 🔒 **Dynamic State Isolation**: Automatically provisions and routes environment-specific state files (`${{ parameters.env }}.tfstate`) into Azure Blob Storage.
-- 🚦 **Dependency Flow**: Out-of-the-box stage orchestration (`Validate` ➔ `Plan` ➔ `Apply`), preventing apply on failed plans or syntax errors.
+- 🔒 **Dynamic State Isolation**: Automatically provisions and routes environment-specific state files (`<env>.tfstate`) into Azure Blob Storage.
+- 🚦 **Dependency Flow**: Out-of-the-box stage orchestration (`TerraformValidate` ➔ `TerraformPlan` ➔ `TerraformApply`), preventing apply on failed plans or syntax errors.
 
 ---
 
@@ -57,9 +57,9 @@ flowchart TD
 
     subgraph TemplateRepo["Templates Repository (ThatCurious1/Templates)"]
         direction TB
-        ValStage["validate.yml (Stage)"]
-        PlanStage["plan.yml (Stage)"]
-        ApplyStage["apply.yml (Stage)"]
+        ValStage["validate.yml (Stage: TerraformValidate<env>)"]
+        PlanStage["plan.yml (Stage: TerraformPlan<env>)"]
+        ApplyStage["apply.yml (Stage: TerraformApply<env>)"]
         InitStep["init.yml (Step Template)"]
     end
 
@@ -165,13 +165,13 @@ Handles dynamic Terraform CLI installation via `TerraformInstaller@1` and config
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `terraformVersion` | `string` | `'latest'` | Exact Terraform version or `'latest'`. |
-| `workingDirectory` | `string` | `$(System.DefaultWorkingDirectory)` | Path to folder containing `.tf` files. |
-| `serviceConnection` | `string` | *(Required)* | Azure Resource Manager Service Connection. |
-| `backendRg` | `string` | `'$(rg)'` | Azure Resource Group hosting state storage account. |
-| `backendSa` | `string` | `'$(sa)'` | Azure Storage Account name for state files. |
-| `backendContainer`| `string` | `'$(container)'` | Storage Container name for `.tfstate` blobs. |
-| `backendKey` | `string` | `'terraform.tfstate'` | State file blob key (e.g. `dev.tfstate`). |
+| `wd` | `string` | `$(System.DefaultWorkingDirectory)` | Path to directory containing `.tf` files. |
+| `sc` | `string` | *(Required)* | Azure Resource Manager Service Connection name. |
+| `key` | `string` | `'default'` | State file prefix (e.g. `'dev'` creates `'dev.tfstate'`). |
+| `terraformVersion` | `string` | `'latest'` | Exact Terraform CLI version or `'latest'`. |
+| `backendRg` | `string` | `'$(rg)'` | Azure Resource Group hosting backend storage. |
+| `backendSa` | `string` | `'$(sa)'` | Azure Storage Account name for state backend. |
+| `backendContainer`| `string` | `'$(container)'` | Storage Container name for state blobs. |
 
 ---
 
@@ -180,37 +180,48 @@ Executes `terraform validate` after initializing the backend to ensure syntax an
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `env` | `string` | `'dev'` | Target environment name. |
 | `wd` | `string` | `$(System.DefaultWorkingDirectory)` | Working directory for Terraform configuration. |
-| `sc` | `string` | *(Required)* | Service connection name. |
+| `env` | `string` | `'dev'` | Target environment name (e.g. `dev`, `uat`, `prod`). |
+| `sc` | `string` | *(Required)* | Azure Resource Manager Service Connection name. |
 | `terraformVersion`| `string` | `'latest'` | Terraform CLI version to install. |
+| `backendRg` | `string` | `'$(rg)'` | Azure Resource Group hosting state storage. |
+| `backendSa` | `string` | `'$(sa)'` | Azure Storage Account name for state files. |
+| `backendContainer`| `string` | `'$(container)'` | Storage Container name for state blobs. |
 | `poolName` | `string` | `'ubuntu-latest'` | Build agent VM Image pool. |
 
 ---
 
 ### 3. `plan.yml` (Stage Template)
-Executes `terraform plan` to calculate infrastructure delta and verify provider authentication. Depends on `Validate_<env>` by default.
+Executes `terraform plan` to calculate infrastructure delta and verify provider authentication. Depends on `TerraformValidate<env>` by default.
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
+| `wd` | `string` | `$(System.DefaultWorkingDirectory)` | Working directory for Terraform configuration. |
 | `env` | `string` | `'dev'` | Target environment name. |
-| `wd` | `string` | `$(System.DefaultWorkingDirectory)` | Working directory. |
-| `sc` | `string` | *(Required)* | Service connection name. |
+| `sc` | `string` | *(Required)* | Azure Resource Manager Service Connection name. |
+| `terraformVersion`| `string` | `'latest'` | Terraform CLI version to install. |
+| `backendRg` | `string` | `'$(rg)'` | Azure Resource Group hosting state storage. |
+| `backendSa` | `string` | `'$(sa)'` | Azure Storage Account name for state files. |
+| `backendContainer`| `string` | `'$(container)'` | Storage Container name for state blobs. |
+| `poolName` | `string` | `'ubuntu-latest'` | Build agent VM Image pool. |
 | `dependsOn` | `object` | `[]` *(Defaults to Validate)* | Custom stage dependency array if required. |
-| `poolName` | `string` | `'ubuntu-latest'` | Agent VM Image pool. |
 
 ---
 
 ### 4. `apply.yml` (Stage Template)
-Executes `terraform apply` against target Azure subscription. Automatically gated to run only after a successful `Plan_<env>`.
+Executes `terraform apply` against target Azure subscription. Automatically gated to run only after a successful `TerraformPlan<env>`.
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
+| `wd` | `string` | `$(System.DefaultWorkingDirectory)` | Working directory for Terraform configuration. |
 | `env` | `string` | `'dev'` | Target environment name. |
-| `wd` | `string` | `$(System.DefaultWorkingDirectory)` | Working directory. |
-| `sc` | `string` | *(Required)* | Service connection name. |
+| `sc` | `string` | *(Required)* | Azure Resource Manager Service Connection name. |
+| `terraformVersion`| `string` | `'latest'` | Terraform CLI version to install. |
+| `backendRg` | `string` | `'$(rg)'` | Azure Resource Group hosting state storage. |
+| `backendSa` | `string` | `'$(sa)'` | Azure Storage Account name for state files. |
+| `backendContainer`| `string` | `'$(container)'` | Storage Container name for state blobs. |
+| `poolName` | `string` | `'ubuntu-latest'` | Build agent VM Image pool. |
 | `dependsOn` | `object` | `[]` *(Defaults to Plan)* | Custom stage dependency array if required. |
-| `poolName` | `string` | `'ubuntu-latest'` | Agent VM Image pool. |
 
 ---
 
@@ -233,4 +244,3 @@ Executes `terraform apply` against target Azure subscription. Automatically gate
 <div align="center">
   <sub>Maintained with ❤️ by <b>ThatCurious1</b> | Built for Enterprise Cloud DevOps Automation</sub>
 </div>
-
