@@ -55,7 +55,7 @@ flowchart TD
         ConsumerPipeline["azure-pipelines.yml"]
     end
 
-    subgraph TemplateRepo["Templates Repository (ThatCurious1/Templates)"]
+    subgraph TemplateRepo["Templates Repository (AnqitG/Templates)"]
         direction TB
         ValStage["validate.yml (Stage: TerraformValidate<env>)"]
         PlanStage["plan.yml (Stage: TerraformPlan<env>)"]
@@ -131,8 +131,8 @@ resources:
   repositories:
     - repository: templateRepo
       type: github
-      name: ThatCurious1/Templates
-      endpoint: github.com_ThatCurious1
+      name: AnqitG/Templates
+      endpoint: github.com_AnqitG
       ref: refs/heads/main # Or use version tag like refs/tags/V1.2
 
 # 3. Call the Standardized Pipeline Stages
@@ -242,5 +242,5 @@ Executes `terraform apply` against target Azure subscription. Automatically gate
 ---
 
 <div align="center">
-  <sub>Maintained with ❤️ by <b>ThatCurious1</b> | Built for Enterprise Cloud DevOps Automation</sub>
+  <sub>Maintained with ❤️ by <b><a href="https://github.com/AnqitG">Anqit Gupta</a></b> (<b>@AnqitG</b>) | Built for Enterprise Cloud DevOps Automation</sub>
 </div>
